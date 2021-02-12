@@ -59,6 +59,25 @@ export class ReleaseNotesManager {
 				this._currentReleaseNotes.webview.html = html;
 			}
 		});
+
+		this._webviewWorkbenchService.registerResolver({
+			canResolve: (webView) => webView.viewType === 'releaseNotes',
+			resolveWebview: async (webviewInput: WebviewInput) => {
+				if (this._currentReleaseNotes) {
+					throw new Error('unable to resolve releaseNotes view, an other instance is already running.');
+				}
+
+				if (!this._lastText) {
+					throw new Error('_lastText must be defined.');
+				}
+
+				const html = await this.renderBody(this._lastText);
+				webviewInput.webview.html = html;
+				this._currentReleaseNotes = webviewInput;
+				this._currentReleaseNotes.webview.onDidClickLink(uri => this.onDidClickLink(URI.parse(uri)));
+				this._currentReleaseNotes.onDispose(() => { this._currentReleaseNotes = undefined; });
+			}
+		});
 	}
 
 	public async show(
